@@ -1,0 +1,122 @@
+######################################################################################################
+### Parse, combine and structurally resolve protein-protein interaction data from IntAct and HPIDB ###
+######################################################################################################
+
+mkdir ~/database/intact/ && cd $_
+wget ftp://ftp.ncbi.nlm.nih.gov/gene/DATA/gene_info.gz
+wget ftp://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2refseq.gz
+gunzip gene_info.gz
+gunzip gene2refseq.gz
+awk 'BEGIN{FS="\t";OFS="\t"}{print $2,$3}' gene_info | sort -u > entrez2symbol.tab
+wget ftp://ftp.ebi.ac.uk/pub/databases/intact/current/psimitab/intact.zip
+unzip intact.zip 
+sed -e "s/'/singlequote/g" -e 's/"/doublequote/g' < intact.txt > intact_quote_replaced.txt
+wget http://hpidb.igbb.msstate.edu/downloads/hpidb2.mitab.zip
+unzip hpidb2.mitab.zip 
+gunzip ppi.fasta.gz 
+gunzip ppi.tab.gz 
+sbatch ppi_parse.R 
+sbatch ppi_id.sh
+sbatch ppi_unique.R 
+sbatch ppi2pfam.sh 
+sbatch ppi_ddmi.R 
+
+#################################################
+### Parse protein structure and taxonomy data ###
+#################################################
+
+mkdir ~/database/taxonomy && cd $_
+bash taxonomy.sh 
+mkdir ~/database/3did_elm && cd $_
+wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.dead.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/database_files/clan_membership.txt.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/database_files/pfamA_interactions.txt.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/database_files/gene_ontology.txt.gz
+wget --no-check-certificate https://3did.irbbarcelona.org/download/current/3did_flat.gz
+wget --no-check-certificate https://3did.irbbarcelona.org/download/current/3did_dmi_flat.gz
+wget --no-check-certificate https://3did.irbbarcelona.org/download/current/3did_interface_flat.gz
+wget --no-check-certificate https://3did.irbbarcelona.org/download/current/3did_global_interface_flat.gz
+gunzip *.gz
+mv Pfam-A.dead pfam_dead.txt
+wget -O elm_classes.tsv http://elm.eu.org/elms/elms_index.tsv
+wget -O elm_instances.tsv http://elm.eu.org/instances.tsv?q=*&taxon=&instance_logic=
+wget -O elm_interactions.tsv http://elm.eu.org/interactions/as_tsv
+wget -O elm_interaction_domains.tsv http://elm.eu.org/infos/browse_elm_interactiondomains.tsv
+wget -O elm_methods.tsv http://elm.eu.org/infos/browse_elm_methods.tsv
+wget -O elm_pdbs.tsv http://elm.eu.org/pdbs.tsv
+wget -O elm_goterms.tsv http://elm.eu.org/goterms.tsv
+wget -O elm_kegg.tsv http://elm.eu.org/kegg_terms.tsv
+wget -O elm_reactome.tsv http://elm.eu.org/reactome_terms.tsv
+wget -O elm_renamed.tsv http://elm.eu.org/infos/browse_renamed.tsv
+wget -O pfam2go.txt ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/external2go/pfam2go
+wget http://current.geneontology.org/ontology/subsets/goslim_generic.obo
+wget http://current.geneontology.org/ontology/subsets/goslim_metagenomics.obo
+wget http://current.geneontology.org/ontology/subsets/goslim_pir.obo
+wget ftp://ftp.ebi.ac.uk/pub/databases/interpro/current/interpro.xml.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/interpro/current/interpro.xml.gz.md5
+md5sum -c interpro.xml.gz.md5 && gunzip interpro.xml.gz
+python interpro2pfam.py 
+wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/mappings/pdb_pfam_mapping.txt
+wget ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/tsv/pdb_chain_pfam.tsv.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/tsv/pdb_chain_taxonomy.tsv.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/tsv/pdb_chain_uniprot.tsv.gz
+zcat pdb_chain_uniprot.tsv.gz | tail -n +3 | cut -f 3 | sort -u > pdb_chain_uniprotac.txt
+echo -e "uniprotac\ttaxid" > pdb_chain_uniprotac.tab
+awk 'BEGIN {FS="\t"; OFS="\t"} NR==FNR {a[$1]; next} ($1 in a) {print $1,$13}' pdb_chain_uniprotac.txt <(zcat ~/database/uniprot/idmapping_selected.tab.gz) >> pdb_chain_uniprotac.tab
+wget -O pdb_obsolete.dat ftp://ftp.wwpdb.org/pub/pdb/data/status/obsolete.dat
+Rscript parse_3did_elm.R 
+sbatch ddmi2pdb2taxcat.R 
+Rscript pfam2goslim.R 
+
+mkdir ~/database/uniprot/ && cd $_
+wget ftp://ftp.ebi.ac.uk/pub/databases/interpro/current/uniparc_match.tar.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/interpro/current/uniparc_match.tar.gz.md5
+sbatch uniparc_match_untar.sh 
+sbatch uniparc_domain_motif.py 
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/pan_proteomes/PPMembership.txt
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping_selected.tab.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/idmapping/idmapping.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_human.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_human.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_invertebrates.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_invertebrates.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_mammals.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_mammals.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_rodents.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_rodents.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_vertebrates.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_vertebrates.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_plants.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_plants.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_fungi.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_fungi.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_bacteria.dat.gz
+wget ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_bacteria.dat.gz
+sbatch getinfo_host.sh 
+sbatch getinfo_bacteria.sh
+gunzip proteomes_animal.tab.gz 
+gunzip proteomes_plant.tab.gz 
+gunzip proteomes_fungi.tab.gz 
+gunzip proteomes_bacteria.tab.gz 
+gunzip uniprot_refnr_proteomes.tab.gz 
+Rscript phibase.R 
+sbatch pfam_host_other.R 
+sbatch getinfo_esmc.sh 
+sbatch esmc.R
+Rscript esmc50_domain.R 
+sbatch host_bacteria_pfam_ddi2species.R 
+Rscript esmc_uniprotid_split.R
+zcat esmc_uniprotid_*.fasta.gz > esmc.fasta
+sbatch esmc_motif.py 
+gzip esmc_motif.csv 
+bash mobidblt_esmc_fasta.sh 
+sbatch esmc_mobidblt_motif.R 
+sbatch esmc_elm.R 
+Rscript esmc_mobidblt_elm.R 
+
+###########################################################
+### Run domain and motif analyses of bacterial proteins ###
+###########################################################
+
+Rscript ~/database/uniprot/esmc50_domain_analysis.R

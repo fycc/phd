@@ -1,0 +1,9 @@
+UniProt Accession,Representative species,Domains,# Pathogenic spp. encoding proteins with domain(s),Domains mediating PPIs exclusively in eukaryotes
+B0RMF9,Xanthomonas campestris,PF00560,14,PF00560
+A0A0A8VF40,Yersinia ruckeri,PF00560; PF13855,12,PF00560
+A0A199P7E1,Xanthomonas translucens,PF00646,11,PF00646
+A0A0S4VGA6,Ralstonia solanacearum,PF00646; PF13516,4,PF00646
+F6G106,Ralstonia solanacearum,PF00646; PF13516; PF13855,4,PF00646
+A0A1Y0FB05,Ralstonia solanacearum,PF00665; PF13276,74,PF00665
+A0A286NT26,Vibrio parahaemolyticus,PF02205,3,PF02205
+D8NFZ7,Ralstonia solanacearum,PF01535; PF12854; PF13812,1,PF13812

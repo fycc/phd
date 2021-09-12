@@ -1,0 +1,11 @@
+UniProt Accession,Species,Domains,Domains with DDI partners in both eukaryotes and bacteria,# Pathogenic spp. encoding proteins with domain(s),Log odds ratio of domains co-occurring with DDI partners in eukaryotes vs. in bacteria
+Q5ZRQ0,Legionella pneumophila,PF04564,PF04564,1,7.1
+O84875,Chlamydia trachomatis,PF02902,PF02902,13,6.2
+P74873,Salmonella enterica,PF00102; PF03545; PF09119,PF00102,2,4.4
+Q9KS43,Vibrio cholerae,PF01764,PF01764,40,3.9
+Q3BQY9,Xanthomonas euvesicatoria,PF13202; PF13499,PF13202; PF13499,19,3.8
+D8P6Z5,Ralstonia solanacearum,PF13516,PF13516,14,3.7
+Q8XT98,Ralstonia solanacearum,PF00069,PF00069,69,3.5
+D2TI55,Citrobacter rodentium,PF00557,PF00557,84,2.8
+Q8XZN9,Ralstonia solanacearum,PF13516; PF13855,PF13516; PF13855,13,2.2
+A0A6C9X110,Escherichia coli,PF00805; PF01391; PF13599,PF01391,27,2
